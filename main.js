@@ -30,17 +30,17 @@ const PROJECTS = [
     results: ["A booking request in under half a minute", "Local business markup for search engines", "Quick loading on mid-range phones"] }
 ];
 
-/* the five movements shown on the rotating drum */
+/* the five steps shown in the scroll section */
 const STAGES = [
-  { n: "Listen", r: "I", t: "We begin with your goals, your customers and your constraints, and write them down in plain language.",
-    icon: '<circle cx="30" cy="30" r="4"/><path d="M20 20a14 14 0 0 0 0 20M40 20a14 14 0 0 1 0 20M14 14a22 22 0 0 0 0 32M46 14a22 22 0 0 1 0 32"/>' },
-  { n: "Shape", r: "II", t: "Structure and wording come before visuals: what each page says, and in what order it says it.",
+  { n: "Talk", t: "We learn about your business, your customers and what you want the website to do.",
+    icon: '<path d="M8 12h44v28H28l-10 10V40H8z"/><path d="M18 22h24M18 30h14"/>' },
+  { n: "Sketch", t: "We plan the pages and write the words, so everything has a clear place before we design.",
     icon: '<rect x="8" y="8" width="44" height="44" rx="2"/><path d="M8 22h44M22 22v30M8 36h14"/>' },
-  { n: "Make", r: "III", t: "Design and build move side by side, so nothing gets lost between a mock-up and the real thing.",
+  { n: "Build", t: "We design and build the real website, and you can review it as it grows.",
     icon: '<rect x="12" y="12" width="36" height="36"/><rect x="20" y="20" width="20" height="20" transform="rotate(45 30 30)"/>' },
-  { n: "Refine", r: "IV", t: "Spacing, motion and speed are tuned until the details stop being noticed and the whole simply feels right.",
+  { n: "Polish", t: "We fine-tune the look, the speed and the phone layout until everything feels right.",
     icon: '<path d="M10 18h40M10 30h40M10 42h40"/><circle cx="22" cy="18" r="3.5"/><circle cx="38" cy="30" r="3.5"/><circle cx="28" cy="42" r="3.5"/>' },
-  { n: "Release", r: "V", t: "We launch, hand everything over, and stay close for a short while as the site settles in.",
+  { n: "Launch", t: "We put it online, hand over everything, and help you for the first few weeks.",
     icon: '<path d="M30 52V12M16 26 30 12 44 26"/><path d="M12 56h36"/>' }
 ];
 
@@ -52,8 +52,37 @@ const FAQS = [
   ["What happens after launch?", "A short support period is included. Ongoing care and updates are available if you want them, but never required."]
 ];
 
+/* =====================================================================
+   One animation loop for everything.
+   - Scroll-driven effects register an update function and a measure function.
+   - Measurements are cached (no layout reads while scrolling).
+   - Work only happens in a frame when the scroll position actually changed.
+   ===================================================================== */
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const loop = { update: [], measure: [], extra: [], lastY: -1, dirty: true };
+
+function runMeasure() { loop.measure.forEach(f => f()); loop.dirty = true; }
+
+function startLoop() {
+  const tick = t => {
+    if (window.__lenis) window.__lenis.raf(t);        // smooth-scroll first, so scrollY is current
+    const y = window.scrollY;
+    if (y !== loop.lastY || loop.dirty) {
+      loop.lastY = y; loop.dirty = false;
+      for (let i = 0; i < loop.update.length; i++) loop.update[i](y);
+    }
+    for (let i = 0; i < loop.extra.length; i++) loop.extra[i](t);
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+  addEventListener("resize", runMeasure, { passive: true });
+  addEventListener("load", runMeasure);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(runMeasure);
+  if ("ResizeObserver" in window) new ResizeObserver(runMeasure).observe(document.body);
+}
+
 /* ---------- shared header / footer ---------- */
-const NAV = [["work.html", "Work"], ["services.html", "Services"], ["process.html", "Method"], ["about.html", "About"], ["contact.html", "Contact"]];
+const NAV = [["work.html", "Work"], ["services.html", "Services"], ["process.html", "How we work"], ["about.html", "About"], ["contact.html", "Contact"]];
 function mountChrome() {
   const here = location.pathname.split("/").pop() || "index.html";
   const links = NAV.map(([h, l]) => `<li><a href="${h}" class="${here === h ? "on" : ""}">${l}</a></li>`).join("");
@@ -71,14 +100,14 @@ function mountChrome() {
     <div><a class="brand" href="index.html">${SITE.name}<i>·</i></a><p style="margin-top:14px;max-width:300px">${SITE.tagline}</p><p style="margin-top:14px">${SITE.email}</p></div>
     <div><h4>Studies</h4><ul>${PROJECTS.slice(0, 4).map(p => `<li><a href="case.html?p=${p.slug}">${p.name}</a></li>`).join("")}<li><a href="work.html">All work</a></li></ul></div>
     <div><h4>Services</h4><ul><li><a href="services.html">Brand websites</a></li><li><a href="services.html">Online stores</a></li><li><a href="services.html">Campaign pages</a></li><li><a href="services.html">Rebuilds</a></li></ul></div>
-    <div><h4>Studio</h4><ul><li><a href="process.html">Method</a></li><li><a href="about.html">About</a></li><li><a href="faq.html">Questions</a></li><li><a href="contact.html">Contact</a></li></ul></div>
+    <div><h4>Studio</h4><ul><li><a href="process.html">How we work</a></li><li><a href="about.html">About</a></li><li><a href="faq.html">Questions</a></li><li><a href="contact.html">Contact</a></li></ul></div>
     </div><p class="copy">© ${SITE.year} ${SITE.name} ${SITE.accent}. Work marked as concept is self-initiated.</p></div>`;
   document.body.appendChild(f);
 }
 
 /* ---------- reveal on scroll ---------- */
 function reveal() {
-  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), { threshold: .12 });
+  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), { threshold: .12, rootMargin: "0px 0px -4% 0px" });
   document.querySelectorAll("[data-reveal]").forEach(el => io.observe(el));
 }
 
@@ -86,6 +115,7 @@ function reveal() {
 function stats() {
   document.querySelectorAll("[data-count]").forEach(el => {
     const to = parseFloat(el.dataset.count), dec = (el.dataset.count.split(".")[1] || "").length, suf = el.dataset.suffix || "";
+    if (REDUCED) { el.textContent = to.toFixed(dec) + suf; return; }
     const io = new IntersectionObserver(([e]) => {
       if (!e.isIntersecting) return; io.disconnect();
       const t0 = performance.now();
@@ -94,39 +124,48 @@ function stats() {
   });
 }
 
-/* ---------- scroll-driven rotating drum ---------- */
+/* ---------- scroll-driven five-step row ---------- */
 function drum() {
   const pin = document.getElementById("pin"); if (!pin) return;
   const rig = document.getElementById("rig"), tabs = document.getElementById("tabs"), info = document.getElementById("info"), prog = document.getElementById("prog");
-  rig.innerHTML = '<div class="axis"></div><div class="ring"></div>' + STAGES.map((s, i) =>
-    `<div class="panel" style="--i:${i}"><small>${s.r}</small><svg viewBox="0 0 60 60" aria-hidden="true">${s.icon}</svg><span>${s.n}</span></div>`).join("");
-  tabs.innerHTML = STAGES.map((s, i) => `<button data-i="${i}">${s.n}</button>`).join("");
+  rig.innerHTML = STAGES.map((s, i) =>
+    `<div class="panel"><div class="top"><small>${i + 1}</small><svg viewBox="0 0 60 60" aria-hidden="true">${s.icon}</svg></div><b>${s.n}</b></div>`).join("");
+  tabs.innerHTML = STAGES.map((s, i) => `<button data-i="${i}">${i + 1}. ${s.n}</button>`).join("");
   const panels = [...rig.querySelectorAll(".panel")], btns = [...tabs.children];
-  let last = -1;
-  const span = () => pin.offsetHeight - innerHeight;
-  const top = () => pin.getBoundingClientRect().top + scrollY;
-  function set(p) {
-    p = Math.max(0, Math.min(1, p));
+  let last = -1, lastP = -1, pinTop = 0, span = 1, gap = 285;
+
+  loop.measure.push(() => {                     // cached once per resize, never during scroll
+    pinTop = pin.getBoundingClientRect().top + window.scrollY;
+    span = Math.max(1, pin.offsetHeight - innerHeight);
+    gap = Math.min(285, innerWidth * .24);
+    lastP = -1;
+  });
+
+  loop.update.push(y => {
+    const p = Math.max(0, Math.min(1, (y - pinTop) / span));
+    if (p === lastP) return;                    // fully above or below the section: nothing to do
+    lastP = p;
     const f = p * 4, idx = Math.round(f);
-    rig.style.setProperty("--rot", (-f * 72) + "deg");
-    prog.style.width = (p * 100) + "%";
-    panels.forEach((el, i) => { el.style.opacity = Math.max(.22, 1 - Math.abs(f - i) * .5); });
+    for (let i = 0; i < panels.length; i++) {
+      const d = i - f, a = Math.abs(d), el = panels[i];
+      const ry = Math.max(-48, Math.min(48, -d * 32));
+      el.style.transform = `translate3d(${d * gap}px,0,${-a * 130}px) rotateY(${ry}deg)`;
+      el.style.opacity = Math.max(.3, 1 - a * .34);
+    }
+    prog.style.transform = `scaleX(${p})`;
     if (idx !== last) {
       last = idx;
       panels.forEach((el, i) => el.classList.toggle("active", i === idx));
       btns.forEach((b, i) => b.classList.toggle("on", i === idx));
-      info.innerHTML = `<small>${STAGES[idx].r} / V</small><h3>${STAGES[idx].n}</h3><p>${STAGES[idx].t}</p>`;
+      info.innerHTML = `<small>Step ${idx + 1} of 5</small><h3>${STAGES[idx].n}</h3><p>${STAGES[idx].t}</p>`;
     }
-  }
-  const onScroll = () => set((scrollY - top()) / span());
-  addEventListener("scroll", onScroll, { passive: true });
-  addEventListener("resize", onScroll);
+  });
+
   tabs.onclick = e => {
     const b = e.target.closest("button"); if (!b) return;
-    const y = top() + (b.dataset.i / 4) * span() + 2;
-    window.__lenis ? window.__lenis.scrollTo(y) : scrollTo({ top: y, behavior: "smooth" });
+    const y = pinTop + (b.dataset.i / 4) * span + 2;
+    window.__lenis ? window.__lenis.scrollTo(y, { duration: 1.4 }) : scrollTo({ top: y, behavior: "smooth" });
   };
-  onScroll();
 }
 
 /* ---------- scrolling background + progress bar ---------- */
@@ -137,18 +176,16 @@ function scrollBackground() {
   document.body.prepend(bg);
   const sp = document.createElement("div"); sp.className = "sp"; document.body.prepend(sp);
   const grid = bg.children[0], o1 = bg.children[1], o2 = bg.children[2];
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  let ticking = false;
-  function frame() {
-    ticking = false;
-    const y = scrollY, max = Math.max(1, document.documentElement.scrollHeight - innerHeight), k = y / max;
+  let max = 1;
+  loop.measure.push(() => { max = Math.max(1, document.documentElement.scrollHeight - innerHeight); });
+  loop.update.push(y => {
+    const k = y / max;
+    sp.style.transform = `scaleX(${Math.min(1, k)})`;
+    if (REDUCED) return;
     grid.style.transform = `translate3d(0,${-(y * .15) % 90}px,0)`;
     o1.style.transform = `translate3d(${Math.sin(k * 6) * 6}vw,${y * .22}px,0)`;
     o2.style.transform = `translate3d(${Math.cos(k * 6) * -6}vw,${-y * .14}px,0)`;
-    sp.style.width = (k * 100) + "%";
-  }
-  addEventListener("scroll", () => { if (!ticking) { ticking = true; requestAnimationFrame(frame); } }, { passive: true });
-  frame();
+  });
 }
 
 /* ---------- project cards ---------- */
@@ -227,41 +264,46 @@ function splitHeadings() {
   });
 }
 
-/* ---------- smooth inertial scroll (Lenis, optional) ---------- */
+/* ---------- smooth inertial scroll (Lenis, optional; driven by our loop) ---------- */
 function smoothScroll() {
-  if (typeof Lenis === "undefined" || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  const l = new Lenis({ lerp: .09 });
-  window.__lenis = l;
-  (function raf(t) { l.raf(t); requestAnimationFrame(raf); })(performance.now());
+  if (typeof Lenis === "undefined" || REDUCED) return;
+  window.__lenis = new Lenis({ lerp: .1, autoRaf: false, anchors: true });
 }
 
-/* ---------- custom cursor + magnetic buttons ---------- */
+/* ---------- custom cursor + magnetic buttons (mouse devices only) ---------- */
 function cursorFX() {
-  if (!matchMedia("(pointer: fine)").matches || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  if (!matchMedia("(pointer: fine)").matches || REDUCED) return;
   const c = document.createElement("div"); c.className = "cur"; document.body.appendChild(c);
   let tx = 0, ty = 0, x = 0, y = 0;
-  addEventListener("pointermove", e => { tx = e.clientX; ty = e.clientY; c.classList.add("on"); });
+  addEventListener("pointermove", e => { tx = e.clientX; ty = e.clientY; c.classList.add("on"); }, { passive: true });
   document.addEventListener("pointerleave", () => c.classList.remove("on"));
-  (function loop() { x += (tx - x) * .18; y += (ty - y) * .18; c.style.transform = `translate3d(${x}px,${y}px,0)`; requestAnimationFrame(loop); })();
-  document.addEventListener("pointerover", e => { c.classList.toggle("big", !!e.target.closest("a,button,summary,.proj")); });
+  document.addEventListener("pointerover", e => { c.classList.toggle("big", !!e.target.closest("a,button,summary,.proj")); }, { passive: true });
+  loop.extra.push(() => {
+    const dx = tx - x, dy = ty - y;
+    if (Math.abs(dx) < .05 && Math.abs(dy) < .05) return;   // idle: no style writes
+    x += dx * .2; y += dy * .2;
+    c.style.transform = `translate3d(${x}px,${y}px,0)`;
+  });
   document.querySelectorAll(".btn").forEach(b => {
-    b.addEventListener("pointermove", e => { const r = b.getBoundingClientRect(); b.style.transform = `translate(${(e.clientX - r.left - r.width / 2) * .18}px,${(e.clientY - r.top - r.height / 2) * .28}px)`; });
+    b.addEventListener("pointermove", e => { const r = b.getBoundingClientRect(); b.style.transform = `translate(${(e.clientX - r.left - r.width / 2) * .16}px,${(e.clientY - r.top - r.height / 2) * .24}px)`; }, { passive: true });
     b.addEventListener("pointerleave", () => { b.style.transform = ""; });
   });
 }
 
-/* ---------- brand preloader (first visit per session) ---------- */
+/* ---------- brand preloader (first visit per session, kept short) ---------- */
 function preloader() {
   let seen = false; try { seen = sessionStorage.getItem("np_seen") === "1"; sessionStorage.setItem("np_seen", "1"); } catch (e) {}
-  if (seen || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  if (seen || REDUCED) return;
   const p = document.createElement("div"); p.className = "pre"; p.innerHTML = `<span>${SITE.name}</span>`;
   document.body.appendChild(p);
-  setTimeout(() => p.classList.add("out"), 1300);
-  setTimeout(() => p.remove(), 2400);
+  setTimeout(() => p.classList.add("out"), 850);
+  setTimeout(() => p.remove(), 1800);
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  scrollBackground(); mountChrome(); mountProjects(); mountCase(); mountFaq(); mountForm();
-  splitHeadings(); drum(); stats(); reveal();
+  mountChrome(); mountProjects(); mountCase(); mountFaq(); mountForm();
+  scrollBackground(); drum();
+  splitHeadings(); stats(); reveal();
   smoothScroll(); cursorFX(); preloader();
+  runMeasure(); startLoop();
 });
