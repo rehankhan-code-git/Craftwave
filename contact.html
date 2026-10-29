@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Contact — Craft-Wave Studio</title>
+<meta name="description" content="Tell Craft-Wave Studio about your project.">
+<meta name="theme-color" content="#0a0908">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<section class="page-hero">
+  <div class="wrap" style="max-width:820px">
+    <span class="eyebrow">Contact</span>
+    <h1>Tell us what you <em>have in mind.</em></h1>
+    <p class="lead" style="margin-top:20px">A few lines is plenty. We'll read it properly and reply with questions, not a sales script.</p>
+
+    <form id="brief">
+      <div class="two">
+        <label>Your name *<input name="name" required></label>
+        <label>Email *<input name="email" type="email" required></label>
+      </div>
+      <div class="two">
+        <label>Company or project<input name="company"></label>
+        <label>Current website<input name="website" type="url" placeholder="https://"></label>
+      </div>
+      <div class="two">
+        <label>What are you after?
+          <select name="need">
+            <option>A new website</option><option>An online store</option><option>A single campaign page</option><option>A rebuild of my current site</option><option>Not sure yet</option>
+          </select></label>
+        <label>Rough budget
+          <select name="budget">
+            <option>Still deciding</option><option>Entry level</option><option>Mid-range</option><option>Premium</option>
+          </select></label>
+      </div>
+      <label>When would you like to launch?
+        <select name="timing"><option>As soon as possible</option><option>In the next two months</option><option>In three months or more</option><option>No fixed date</option></select></label>
+      <label>Tell us about the project *<textarea name="details" required></textarea></label>
+      <button class="btn primary" type="submit" style="justify-self:start">Send your enquiry</button>
+      <div class="ok" id="ok">Your email app should open with the details filled in. Just press send.</div>
+      <p class="note">Your details are used only to reply to you. We never sell or share them.</p>
+    </form>
+  </div>
+</section>
+<script defer src="https://cdn.jsdelivr.net/npm/lenis@1.1.14/dist/lenis.min.js"></script>
+<script defer src="main.js"></script>
+<script defer src="https://cdn.vercel-insights.com/v1/script.js"></script>
+</body>
+</html>
